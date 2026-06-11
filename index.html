@@ -65,8 +65,8 @@ textarea{min-height:110px;resize:vertical;font-family:'Menlo','Consolas',monospa
 .upload-zone small{font-size:11px;color:var(--text3);margin-top:4px;display:block}
 input[type=file]{display:none}
 
-.names-wrap{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;max-height:150px;overflow-y:auto}
-.name-chip{display:inline-flex;align-items:center;gap:3px;border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-size:12px;cursor:pointer;transition:.15s;user-select:none}
+.names-wrap{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.name-chip{display:inline-flex;align-items:center;gap:3px;border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-size:12px;cursor:pointer;transition:.15s;user-select:none;-webkit-tap-highlight-color:rgba(0,0,0,.1);touch-action:manipulation}
 .name-chip.male{background:#E6F1FB;border-color:#B5D4F4;color:#185FA5}
 .name-chip.female{background:#FBEAF0;border-color:#F4B5CB;color:#993556}
 .name-chip.unset{background:var(--bg3)}
@@ -706,8 +706,6 @@ function renderNames() {
   const panel = document.getElementById('names-panel');
   if (!persons.length) { panel.style.display = 'none'; return; }
   panel.style.display = 'block';
-  document.getElementById('cnt-display').textContent = persons.length;
-
   const mc = persons.filter(p => p.gender === 'm').length;
   const fc = persons.filter(p => p.gender === 'f').length;
   const uc = persons.length - mc - fc;
@@ -719,15 +717,40 @@ function renderNames() {
     ${uc > 0 && (mc + fc > 0) ? `<div class="stat"><div class="v">${uc}</div><div class="l">未設定</div></div>` : ''}
   `;
 
-  document.getElementById('names-preview').innerHTML = persons.map((p, i) => {
+  const wrap = document.getElementById('names-preview');
+  wrap.innerHTML = '';
+  persons.forEach((p, i) => {
     const cls = p.gender === 'm' ? 'male' : p.gender === 'f' ? 'female' : 'unset';
     const tag = p.gender === 'm' ? '男' : p.gender === 'f' ? '女' : '－';
     const tagOpacity = p.gender ? '.75' : '.35';
-    return `<span class="name-chip ${cls}" title="クリックで性別切り替え">
-      <span onclick="cycleGender(${i})" style="cursor:pointer;padding:2px 4px 2px 2px">${p.name}<span style="font-size:10px;opacity:${tagOpacity};margin-left:3px">${tag}</span></span>
-      <button class="btn danger-sm" onclick="removePerson(${i})" style="padding:0 3px;margin-left:1px;line-height:1">✕</button>
-    </span>`;
-  }).join('');
+
+    const chip = document.createElement('span');
+    chip.className = 'name-chip ' + cls;
+    chip.title = 'クリックで性別切り替え';
+    chip.style.cursor = 'pointer';
+
+    const label = document.createElement('span');
+    label.textContent = p.name;
+
+    const tagEl = document.createElement('span');
+    tagEl.textContent = ' ' + tag;
+    tagEl.style.cssText = 'font-size:10px;opacity:' + tagOpacity + ';margin-left:3px';
+
+    const delBtn = document.createElement('button');
+    delBtn.textContent = '✕';
+    delBtn.style.cssText = 'padding:0 4px;margin-left:4px;line-height:1;background:none;border:none;cursor:pointer;font-size:12px;color:#a8a7a4;font-family:inherit;flex-shrink:0';
+
+    chip.appendChild(label);
+    chip.appendChild(tagEl);
+    chip.appendChild(delBtn);
+
+    chip.addEventListener('click', () => { cycleGender(i); });
+    chip.onclick = () => { cycleGender(i); };
+    delBtn.addEventListener('click', function(e) { e.stopPropagation(); removePerson(i); });
+    delBtn.onclick = function(e) { e.stopPropagation(); removePerson(i); };
+
+    wrap.appendChild(chip);
+  });
 
   const gRow = document.getElementById('gender-stats-row');
   if (mc + fc > 0) {
