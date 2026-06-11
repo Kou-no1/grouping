@@ -721,10 +721,11 @@ function renderNames() {
 
   document.getElementById('names-preview').innerHTML = persons.map((p, i) => {
     const cls = p.gender === 'm' ? 'male' : p.gender === 'f' ? 'female' : 'unset';
-    const tag = p.gender === 'm' ? '男' : p.gender === 'f' ? '女' : '';
-    return `<span class="name-chip ${cls}" onclick="cycleGender(${i})" title="クリックで性別切り替え">
-      ${p.name}${tag ? `<span style="font-size:10px;opacity:.7"> ${tag}</span>` : ''}
-      <button class="btn danger-sm" onclick="event.stopPropagation();removePerson(${i})" style="padding:0 2px;margin-left:3px">✕</button>
+    const tag = p.gender === 'm' ? '男' : p.gender === 'f' ? '女' : '－';
+    const tagOpacity = p.gender ? '.75' : '.35';
+    return `<span class="name-chip ${cls}" title="クリックで性別切り替え">
+      <span onclick="cycleGender(${i})" style="cursor:pointer;padding:2px 4px 2px 2px">${p.name}<span style="font-size:10px;opacity:${tagOpacity};margin-left:3px">${tag}</span></span>
+      <button class="btn danger-sm" onclick="removePerson(${i})" style="padding:0 3px;margin-left:1px;line-height:1">✕</button>
     </span>`;
   }).join('');
 
