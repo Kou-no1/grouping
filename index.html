@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>グルーピングツール</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -22,24 +23,20 @@
 }
 body{font-family:'Hiragino Sans','Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.6}
 
-/* ── LAYOUT ── */
-.app{max-width:900px;margin:0 auto;padding:32px 20px 80px}
+.app{max-width:940px;margin:0 auto;padding:32px 20px 80px}
 .header{margin-bottom:32px}
 .header h1{font-size:22px;font-weight:600;letter-spacing:-.02em}
 .header p{font-size:13px;color:var(--text2);margin-top:4px}
 
-/* ── TABS ── */
 .tabs{display:flex;gap:2px;background:var(--bg3);padding:3px;border-radius:var(--radius);margin-bottom:24px;width:fit-content}
 .tab{padding:7px 18px;font-size:13px;border-radius:8px;border:none;background:transparent;color:var(--text2);cursor:pointer;transition:.15s;font-family:inherit;white-space:nowrap}
 .tab.active{background:var(--bg2);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.08)}
 .tab:hover:not(.active){color:var(--text)}
 .section{display:none}.section.active{display:block}
 
-/* ── CARDS ── */
 .card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px 24px;margin-bottom:16px}
 .card-title{font-size:13px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px}
 
-/* ── FORM ── */
 .row{display:flex;gap:14px;flex-wrap:wrap}
 .col{flex:1;min-width:150px}
 label.lbl{display:block;font-size:12px;color:var(--text2);margin-bottom:5px;font-weight:500}
@@ -52,7 +49,6 @@ input[type=text],input[type=number],select,textarea{
 input:focus,select:focus,textarea:focus{border-color:var(--border2);background:var(--bg2)}
 textarea{min-height:110px;resize:vertical;font-family:'Menlo','Consolas',monospace;font-size:12px}
 
-/* ── BUTTONS ── */
 .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border-radius:var(--radius);border:1px solid var(--border2);background:transparent;color:var(--text);font-size:13px;cursor:pointer;transition:.15s;font-family:inherit;white-space:nowrap}
 .btn:hover{background:var(--bg3);border-color:var(--text3)}
 .btn.primary{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
@@ -62,7 +58,6 @@ textarea{min-height:110px;resize:vertical;font-family:'Menlo','Consolas',monospa
 .btn.danger-sm:hover{color:#A32D2D}
 .btn-group{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 
-/* ── UPLOAD ── */
 .upload-zone{border:1.5px dashed var(--border2);border-radius:var(--radius-lg);padding:28px;text-align:center;cursor:pointer;transition:.15s;color:var(--text2)}
 .upload-zone:hover,.upload-zone.drag{border-color:var(--text);background:var(--bg3)}
 .upload-zone .icon{font-size:30px;margin-bottom:8px}
@@ -70,37 +65,56 @@ textarea{min-height:110px;resize:vertical;font-family:'Menlo','Consolas',monospa
 .upload-zone small{font-size:11px;color:var(--text3);margin-top:4px;display:block}
 input[type=file]{display:none}
 
-/* ── NAMES ── */
 .names-wrap{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;max-height:150px;overflow-y:auto}
-.name-chip{display:inline-flex;align-items:center;gap:3px;background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-size:12px}
+.name-chip{display:inline-flex;align-items:center;gap:3px;border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-size:12px;cursor:pointer;transition:.15s;user-select:none}
+.name-chip.male{background:#E6F1FB;border-color:#B5D4F4;color:#185FA5}
+.name-chip.female{background:#FBEAF0;border-color:#F4B5CB;color:#993556}
+.name-chip.unset{background:var(--bg3)}
+.name-chip:hover{filter:brightness(.95)}
+.gender-legend{display:flex;gap:12px;align-items:center;font-size:12px;color:var(--text2);margin-top:8px}
+.legend-dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:3px}
 
-/* ── STATS ── */
 .stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
 .stat{background:var(--bg3);border-radius:var(--radius);padding:10px 16px}
 .stat .v{font-size:22px;font-weight:600;line-height:1}
 .stat .l{font-size:11px;color:var(--text2);margin-top:2px}
+.stat.male-stat{background:#E6F1FB}
+.stat.female-stat{background:#FBEAF0}
+.stat.male-stat .v{color:#185FA5}
+.stat.female-stat .v{color:#993556}
 
-/* ── GROUPS GRID ── */
 .groups-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-top:16px}
 .gc{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
 .gc .gh{padding:10px 14px;font-size:13px;font-weight:600;display:flex;justify-content:space-between;align-items:center}
 .gc .gb{padding:4px 14px 12px}
-.mbr{font-size:13px;padding:4px 0;border-bottom:1px solid var(--border);display:flex;gap:8px}
+.mbr{font-size:13px;padding:4px 0;border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:center}
 .mbr:last-child{border:none}
-.mnum{font-size:11px;color:var(--text3);min-width:16px;padding-top:2px}
+.mnum{font-size:11px;color:var(--text3);min-width:16px}
+.gender-tag{font-size:10px;padding:1px 6px;border-radius:10px;margin-left:auto}
+.gender-tag.m{background:#E6F1FB;color:#185FA5}
+.gender-tag.f{background:#FBEAF0;color:#993556}
 
-/* ── PREVIEW HINT ── */
 .hint-box{background:var(--blue-l);border:1px solid #B5D4F4;border-radius:var(--radius);padding:10px 14px;font-size:13px;color:var(--blue);margin-top:12px}
+.warn-box{background:#FAEEDA;border:1px solid #E8C97A;border-radius:var(--radius);padding:10px 14px;font-size:13px;color:#854F0B;margin-top:12px;display:none}
 
-/* ── SEPARATOR ── */
 .sep{height:1px;background:var(--border);margin:16px 0}
-
-/* ── TOOLBAR ── */
 .toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
 
-/* ══════════════════════════════════════
-   REVEAL STAGE
-══════════════════════════════════════ */
+/* ── GENDER MODE SETTINGS ── */
+.gender-settings{background:var(--bg3);border-radius:var(--radius);padding:14px 16px;margin-top:14px}
+.gender-settings-title{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em}
+
+/* ── TOGGLE ── */
+.toggle-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.toggle{position:relative;display:inline-block;width:38px;height:22px}
+.toggle input{opacity:0;width:0;height:0}
+.slider{position:absolute;cursor:pointer;inset:0;background:#ccc;border-radius:22px;transition:.2s}
+.slider:before{position:absolute;content:"";height:16px;width:16px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.2s}
+input:checked+.slider{background:var(--accent)}
+input:checked+.slider:before{transform:translateX(16px)}
+.toggle-label{font-size:13px}
+
+/* ── STAGE / REVEAL ── */
 .stage-wrap{
   width:100%;aspect-ratio:16/9;max-height:480px;
   background:#080810;border-radius:var(--radius-lg);
@@ -147,6 +161,8 @@ input[type=file]{display:none}
   border-radius:40px;padding:7px 18px;font-size:15px;color:#fff;
   animation:popIn .45s cubic-bezier(.34,1.56,.64,1) both;
 }
+.mp.mp-m{border-color:#4A90D944}
+.mp.mp-f{border-color:#D4537E44}
 
 @keyframes zoomin{from{opacity:0;transform:scale(.55)}to{opacity:1;transform:scale(1)}}
 @keyframes fadeup{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
@@ -179,18 +195,21 @@ input[type=file]{display:none}
 .finale-btn{margin-top:28px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:var(--radius);padding:10px 26px;font-size:13px;cursor:pointer;transition:.2s;font-family:inherit;animation:fadeup .5s .35s ease both}
 .finale-btn:hover{background:rgba(255,255,255,.2)}
 
-/* ── MODE TOGGLE ── */
 .mode-toggle{display:flex;gap:4px;margin-bottom:14px;background:var(--bg3);padding:3px;border-radius:var(--radius);width:fit-content}
 .mode-btn{padding:5px 14px;font-size:12px;border-radius:7px;border:none;background:transparent;color:var(--text2);cursor:pointer;font-family:inherit;transition:.15s}
 .mode-btn.active{background:var(--bg2);color:var(--text)}
 
-/* ── PDF SETTINGS ── */
+/* ── EXPORT TABS ── */
+.export-tabs{display:flex;gap:2px;background:var(--bg3);padding:3px;border-radius:var(--radius);margin-bottom:20px;width:fit-content}
+.export-tab{padding:6px 16px;font-size:13px;border-radius:8px;border:none;background:transparent;color:var(--text2);cursor:pointer;transition:.15s;font-family:inherit;white-space:nowrap}
+.export-tab.active{background:var(--bg2);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.export-panel{display:none}.export-panel.active{display:block}
+
 .pdf-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .color-pick{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
 .color-opt{width:28px;height:28px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:.15s}
 .color-opt.selected{border-color:var(--text)}
 
-/* empty state */
 .empty{text-align:center;padding:40px;color:var(--text3)}
 .empty-icon{font-size:36px;display:block;margin-bottom:10px;opacity:.4}
 </style>
@@ -199,7 +218,7 @@ input[type=file]{display:none}
 <div class="app">
   <div class="header">
     <h1>グルーピングツール</h1>
-    <p>名簿の読み込み・グループ生成・ドラマチック発表・PDF出力</p>
+    <p>名簿の読み込み・グループ生成・ドラマチック発表・PDF/Excel出力</p>
   </div>
 
   <div class="tabs">
@@ -207,7 +226,7 @@ input[type=file]{display:none}
     <button class="tab" onclick="switchTab('settings')">② 設定</button>
     <button class="tab" onclick="switchTab('result')">③ 結果</button>
     <button class="tab" onclick="switchTab('reveal')">④ 発表演出</button>
-    <button class="tab" onclick="switchTab('export')">⑤ PDF出力</button>
+    <button class="tab" onclick="switchTab('export')">⑤ 出力</button>
   </div>
 
   <!-- ① 名簿 -->
@@ -219,21 +238,17 @@ input[type=file]{display:none}
         <button class="mode-btn" id="mb-paste" onclick="setMode('paste')">📋 貼り付け</button>
         <button class="mode-btn" id="mb-manual" onclick="setMode('manual')">✏️ 手動入力</button>
       </div>
-
-      <!-- file -->
       <div id="md-file">
         <div class="upload-zone" id="dropzone" onclick="document.getElementById('file-input').click()">
           <div class="icon">📂</div>
           <p>CSV・Excel・テキストをドロップ、またはクリックして選択</p>
-          <small>.csv / .xlsx / .xls / .txt 対応</small>
+          <small>.csv / .xlsx / .xls / .txt 対応（列に「性別」があれば自動読み込み）</small>
         </div>
         <input type="file" id="file-input" accept=".csv,.xlsx,.xls,.txt" onchange="handleFile(this)">
         <div style="margin-top:12px">
           <button class="btn sm" onclick="loadSample()">34人サンプルを読み込む</button>
         </div>
       </div>
-
-      <!-- paste -->
       <div id="md-paste" style="display:none">
         <label class="lbl">名前を貼り付け（1行1名 / カンマ / 読点区切り）</label>
         <textarea id="paste-input" placeholder="山田太郎&#10;鈴木花子&#10;田中一郎&#10;..."></textarea>
@@ -242,8 +257,6 @@ input[type=file]{display:none}
           <button class="btn sm" onclick="loadSample()">サンプル挿入</button>
         </div>
       </div>
-
-      <!-- manual -->
       <div id="md-manual" style="display:none">
         <label class="lbl">名前を1人ずつ追加</label>
         <div style="display:flex;gap:8px">
@@ -254,14 +267,22 @@ input[type=file]{display:none}
     </div>
 
     <div id="names-panel" style="display:none" class="card">
-      <div class="stats">
+      <div class="stats" id="stats-bar">
         <div class="stat"><div class="v" id="cnt-display">0</div><div class="l">名</div></div>
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
         <span style="font-size:13px;font-weight:500">読み込み済みの名前</span>
         <button class="btn danger-sm" onclick="clearNames()">🗑 全削除</button>
       </div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:8px">
+        💡 チップをクリックして性別を設定：
+        <span style="background:#E6F1FB;border:1px solid #B5D4F4;color:#185FA5;border-radius:20px;padding:2px 8px;font-size:11px;cursor:default">男</span>
+        <span style="background:#FBEAF0;border:1px solid #F4B5CB;color:#993556;border-radius:20px;padding:2px 8px;font-size:11px;cursor:default">女</span>
+        <span style="background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:2px 8px;font-size:11px;cursor:default">未設定</span>
+        ← の順に切り替わります
+      </div>
       <div class="names-wrap" id="names-preview"></div>
+      <div id="gender-stats-row" class="gender-legend" style="display:none;margin-top:12px"></div>
       <div class="sep"></div>
       <button class="btn primary" onclick="switchTab('settings')">次へ：グループ設定 →</button>
     </div>
@@ -292,6 +313,50 @@ input[type=file]{display:none}
           </select>
         </div>
       </div>
+
+      <!-- ── 端数設定 ── -->
+      <div style="margin-top:14px;background:var(--bg3);border-radius:var(--radius);padding:14px 16px">
+        <div style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">端数・最小人数</div>
+        <div class="row">
+          <div class="col" style="min-width:180px">
+            <label class="lbl">端数が出たときの処理</label>
+            <select id="remainder-mode" onchange="updatePreview()">
+              <option value="distribute">余りを既存グループに分散</option>
+              <option value="new-group">余りで新しいグループを作る</option>
+              <option value="min-size">最小人数を確保して調整</option>
+            </select>
+          </div>
+          <div class="col" id="min-size-col" style="display:none">
+            <label class="lbl">1グループの最小人数</label>
+            <input type="number" id="min-size" value="3" min="1" max="20" onchange="updatePreview()">
+          </div>
+        </div>
+        <div id="remainder-hint" style="font-size:12px;color:var(--text2);margin-top:8px"></div>
+      </div>
+
+      <!-- ── 性別バランス ── -->
+      <div id="gender-balance-section" style="margin-top:14px;background:var(--bg3);border-radius:var(--radius);padding:14px 16px;display:none">
+        <div class="toggle-row">
+          <label class="toggle">
+            <input type="checkbox" id="gender-balance-toggle" onchange="updatePreview()">
+            <span class="slider"></span>
+          </label>
+          <span class="toggle-label" style="font-weight:600">男女バランスを均等にする</span>
+        </div>
+        <div id="gender-balance-options" style="display:none">
+          <div class="row">
+            <div class="col">
+              <label class="lbl">バランスモード</label>
+              <select id="gender-mode" onchange="updatePreview()">
+                <option value="equal">各グループに均等配分（可能な限り）</option>
+                <option value="ratio">全体の男女比を維持</option>
+              </select>
+            </div>
+          </div>
+          <div id="gender-preview" style="font-size:12px;color:var(--text2);margin-top:8px"></div>
+        </div>
+      </div>
+
       <div class="sep"></div>
       <div class="row">
         <div class="col">
@@ -308,6 +373,7 @@ input[type=file]{display:none}
         </div>
       </div>
       <div class="hint-box" id="preview-hint" style="margin-top:16px">設定を入力するとプレビューが表示されます</div>
+      <div class="warn-box" id="warn-box">⚠ </div>
     </div>
     <div class="btn-group">
       <button class="btn" onclick="switchTab('input')">← 戻る</button>
@@ -321,7 +387,7 @@ input[type=file]{display:none}
     <div class="toolbar">
       <button class="btn" onclick="regenerate()">🔀 再シャッフル</button>
       <button class="btn primary" onclick="switchTab('reveal');startReveal()" style="background:#534AB7;border-color:#534AB7">✨ 発表演出を開始</button>
-      <button class="btn" onclick="switchTab('export')">📄 PDF出力</button>
+      <button class="btn" onclick="switchTab('export')">📄 出力</button>
       <span style="flex:1"></span>
       <span id="result-info" style="font-size:12px;color:var(--text2)"></span>
     </div>
@@ -344,8 +410,6 @@ input[type=file]{display:none}
       </div>
       <canvas id="confetti-canvas"></canvas>
       <div class="spotlight" id="spotlight" style="display:none"></div>
-
-      <!-- group reveal -->
       <div class="reveal-screen" id="reveal-screen">
         <div class="color-bar" id="color-bar"></div>
         <div class="top-bar">
@@ -362,8 +426,6 @@ input[type=file]{display:none}
           <button class="nav-btn" id="nav-next" onclick="navReveal(1)">次へ →</button>
         </div>
       </div>
-
-      <!-- finale -->
       <div class="finale-screen" id="finale-screen">
         <div class="finale-title">🎉 完了！</div>
         <div class="finale-sub" id="finale-sub"></div>
@@ -372,415 +434,752 @@ input[type=file]{display:none}
     </div>
   </div>
 
-  <!-- ⑤ PDF出力 -->
+  <!-- ⑤ 出力 -->
   <div id="tab-export" class="section">
-    <div class="card">
-      <div class="card-title">PDF出力設定</div>
-      <div class="pdf-grid">
-        <div>
-          <label class="lbl">タイトル</label>
-          <input type="text" id="pdf-title" value="グループ分け名簿">
-        </div>
-        <div>
-          <label class="lbl">サブタイトル（任意）</label>
-          <input type="text" id="pdf-sub" placeholder="例：2024年度 班分け">
-        </div>
-        <div>
-          <label class="lbl">1行のグループ数</label>
-          <select id="pdf-cols">
-            <option value="2">2列</option>
-            <option value="3" selected>3列</option>
-            <option value="4">4列</option>
-          </select>
-        </div>
-        <div>
-          <label class="lbl">カラーテーマ</label>
-          <div class="color-pick" id="color-pick">
-            <div class="color-opt selected" style="background:#185FA5" data-key="blue" onclick="selectColor(this)" title="ブルー"></div>
-            <div class="color-opt" style="background:#0F6E56" data-key="teal" onclick="selectColor(this)" title="グリーン"></div>
-            <div class="color-opt" style="background:#534AB7" data-key="purple" onclick="selectColor(this)" title="パープル"></div>
-            <div class="color-opt" style="background:#993C1D" data-key="coral" onclick="selectColor(this)" title="コーラル"></div>
-            <div class="color-opt" style="background:#993556" data-key="pink" onclick="selectColor(this)" title="ピンク"></div>
-            <div class="color-opt" style="background:#854F0B" data-key="amber" onclick="selectColor(this)" title="アンバー"></div>
+    <div class="export-tabs">
+      <button class="export-tab active" onclick="switchExport('pdf')">📄 PDF</button>
+      <button class="export-tab" onclick="switchExport('excel')">📊 Excel (.xlsx)</button>
+      <button class="export-tab" onclick="switchExport('csv')">📋 スプレッドシート (.csv)</button>
+    </div>
+
+    <!-- PDF パネル -->
+    <div id="ep-pdf" class="export-panel active">
+      <div class="card">
+        <div class="card-title">PDF出力設定</div>
+        <div class="pdf-grid">
+          <div>
+            <label class="lbl">タイトル</label>
+            <input type="text" id="pdf-title" value="グループ分け名簿">
+          </div>
+          <div>
+            <label class="lbl">サブタイトル（任意）</label>
+            <input type="text" id="pdf-sub" placeholder="例：2024年度 班分け">
+          </div>
+          <div>
+            <label class="lbl">1行のグループ数</label>
+            <select id="pdf-cols">
+              <option value="2">2列</option>
+              <option value="3" selected>3列</option>
+              <option value="4">4列</option>
+            </select>
+          </div>
+          <div>
+            <label class="lbl">カラーテーマ</label>
+            <div class="color-pick" id="color-pick">
+              <div class="color-opt selected" style="background:#185FA5" data-key="blue" onclick="selectColor(this)" title="ブルー"></div>
+              <div class="color-opt" style="background:#0F6E56" data-key="teal" onclick="selectColor(this)" title="グリーン"></div>
+              <div class="color-opt" style="background:#534AB7" data-key="purple" onclick="selectColor(this)" title="パープル"></div>
+              <div class="color-opt" style="background:#993C1D" data-key="coral" onclick="selectColor(this)" title="コーラル"></div>
+              <div class="color-opt" style="background:#993556" data-key="pink" onclick="selectColor(this)" title="ピンク"></div>
+              <div class="color-opt" style="background:#854F0B" data-key="amber" onclick="selectColor(this)" title="アンバー"></div>
+            </div>
+          </div>
+          <div>
+            <label class="lbl">性別列の表示</label>
+            <select id="pdf-gender">
+              <option value="show">表示する（設定済みのみ）</option>
+              <option value="hide">表示しない</option>
+            </select>
           </div>
         </div>
+        <div class="sep"></div>
+        <div class="btn-group">
+          <button class="btn primary" onclick="downloadPDF()">📥 PDFをダウンロード</button>
+          <button class="btn" onclick="printGroups()">🖨 印刷</button>
+        </div>
+        <div id="pdf-status" style="margin-top:12px;font-size:13px;color:var(--text2);display:none"></div>
       </div>
-      <div class="sep"></div>
-      <div class="btn-group">
-        <button class="btn primary" onclick="downloadPDF()">📥 PDFをダウンロード</button>
-        <button class="btn" onclick="printGroups()">🖨 印刷</button>
+    </div>
+
+    <!-- Excel パネル -->
+    <div id="ep-excel" class="export-panel">
+      <div class="card">
+        <div class="card-title">Excel (.xlsx) 出力</div>
+        <div class="pdf-grid">
+          <div>
+            <label class="lbl">ファイル名</label>
+            <input type="text" id="xl-title" value="グループ分け名簿">
+          </div>
+          <div>
+            <label class="lbl">サブタイトル（任意）</label>
+            <input type="text" id="xl-sub" placeholder="例：2024年度 班分け">
+          </div>
+          <div>
+            <label class="lbl">レイアウト</label>
+            <select id="xl-layout">
+              <option value="wide">横並び（グループを横に並べる）</option>
+              <option value="tall">縦1列（グループ名・名前・性別）</option>
+            </select>
+          </div>
+          <div>
+            <label class="lbl">性別列</label>
+            <select id="xl-gender">
+              <option value="show">含める</option>
+              <option value="hide">含めない</option>
+            </select>
+          </div>
+        </div>
+        <div class="sep"></div>
+        <button class="btn primary" onclick="downloadExcel()">📥 Excelをダウンロード</button>
+        <div id="xl-status" style="margin-top:12px;font-size:13px;color:var(--text2);display:none"></div>
       </div>
-      <div id="pdf-status" style="margin-top:12px;font-size:13px;color:var(--text2);display:none"></div>
+    </div>
+
+    <!-- CSV パネル -->
+    <div id="ep-csv" class="export-panel">
+      <div class="card">
+        <div class="card-title">スプレッドシート (.csv) 出力</div>
+        <div class="pdf-grid">
+          <div>
+            <label class="lbl">ファイル名</label>
+            <input type="text" id="csv-title" value="グループ分け名簿">
+          </div>
+          <div>
+            <label class="lbl">レイアウト</label>
+            <select id="csv-layout">
+              <option value="wide">横並び（グループを横に並べる）</option>
+              <option value="tall">縦1列（グループ名・名前・性別）</option>
+            </select>
+          </div>
+          <div>
+            <label class="lbl">性別列</label>
+            <select id="csv-gender">
+              <option value="show">含める</option>
+              <option value="hide">含めない</option>
+            </select>
+          </div>
+          <div>
+            <label class="lbl">文字コード</label>
+            <select id="csv-encoding">
+              <option value="utf8bom">UTF-8 BOM付き（Excel推奨）</option>
+              <option value="utf8">UTF-8</option>
+            </select>
+          </div>
+        </div>
+        <div class="sep"></div>
+        <div class="btn-group">
+          <button class="btn primary" onclick="downloadCSV()">📥 CSVをダウンロード</button>
+          <button class="btn" onclick="previewCSV()">👁 プレビュー</button>
+        </div>
+        <div id="csv-status" style="margin-top:12px;font-size:13px;color:var(--text2);display:none"></div>
+        <pre id="csv-preview" style="display:none;margin-top:12px;background:var(--bg3);border-radius:var(--radius);padding:12px;font-size:12px;overflow-x:auto;max-height:200px;white-space:pre"></pre>
+      </div>
     </div>
   </div>
 </div>
 
 <script>
-// ═══ STATE ═══
-const SAMPLE=['山田太郎','鈴木花子','田中一郎','佐藤美咲','伊藤健二','渡辺由美','中村翔太','小林奈々','加藤大輔','吉田理恵','山口誠','松本優子','井上浩二','木村沙織','林謙一','斎藤実桜','清水義雄','山本千夏','森田勇気','池田真由','橋本拓也','石川光','宮本玲奈','坂本明','尾田恵美','杉山隆一','内田菜摘','前田大輝','長谷川瞳','藤田聡','岡田朱音','西村哲','安田彩香','高橋葵'];
+// ═══ CONSTANTS ═══
+const SAMPLE_NAMES=['山田太郎','鈴木花子','田中一郎','佐藤美咲','伊藤健二','渡辺由美','中村翔太','小林奈々','加藤大輔','吉田理恵','山口誠','松本優子','井上浩二','木村沙織','林謙一','斎藤実桜','清水義雄','山本千夏','森田勇気','池田真由','橋本拓也','石川光','宮本玲奈','坂本明','尾田恵美','杉山隆一','内田菜摘','前田大輝','長谷川瞳','藤田聡','岡田朱音','西村哲','安田彩香','高橋葵'];
+// Male/female hints for sample (index aligns with SAMPLE_NAMES)
+const SAMPLE_GENDERS=['m','f','m','f','m','f','m','f','m','f','m','f','m','f','m','f','m','f','m','f','m','m','f','m','f','m','f','m','f','m','f','m','f','f'];
 const KANJI=['一','二','三','四','五','六','七','八','九','十','十一','十二','十三','十四','十五','十六','十七','十八','十九','二十'];
 const GC_COLORS={blue:'#185FA5',teal:'#0F6E56',purple:'#534AB7',coral:'#993C1D',pink:'#993556',amber:'#854F0B'};
 const GC_LIGHTS={blue:'#E6F1FB',teal:'#E1F5EE',purple:'#EEEDFE',coral:'#FAECE7',pink:'#FBEAF0',amber:'#FAEEDA'};
 const GROUP_ACCENT_COLORS=['#185FA5','#0F6E56','#7F77DD','#D85A30','#D4537E','#BA7517','#A32D2D','#1D9E75'];
 const GROUP_ACCENT_LIGHTS=['#E6F1FB','#E1F5EE','#EEEDFE','#FAECE7','#FBEAF0','#FAEEDA','#FCEBEB','#E1F5EE'];
 
-let names=[];
-let groups=[];
-let revealIdx=0;
-let confettiAnim=null;
-let confettiParticles=[];
-let selectedColor='blue';
+// ═══ STATE ═══
+// persons: [{name, gender}]  gender: 'm'|'f'|null
+let persons = [];
+let groups = [];
+let revealIdx = 0;
+let confettiAnim = null;
+let confettiParticles = [];
+let selectedColor = 'blue';
 
-// ═══ TAB ═══
-function switchTab(name){
-  const tabs=['input','settings','result','reveal','export'];
-  tabs.forEach((t,i)=>{
-    document.querySelectorAll('.tab')[i].classList.toggle('active',t===name);
-    document.getElementById('tab-'+t).classList.toggle('active',t===name);
+// ═══ TABS ═══
+function switchTab(name) {
+  const tabs = ['input','settings','result','reveal','export'];
+  tabs.forEach((t, i) => {
+    document.querySelectorAll('.tab')[i].classList.toggle('active', t === name);
+    document.getElementById('tab-' + t).classList.toggle('active', t === name);
   });
-  if(name==='settings')updatePreview();
+  if (name === 'settings') { updateGenderSection(); updatePreview(); }
 }
 
-// ═══ MODE ═══
-function setMode(m){
-  ['file','paste','manual'].forEach(x=>{
-    document.getElementById('md-'+x).style.display=x===m?'block':'none';
-    document.getElementById('mb-'+x).classList.toggle('active',x===m);
+function switchExport(name) {
+  ['pdf','excel','csv'].forEach(k => {
+    document.getElementById('ep-' + k).classList.toggle('active', k === name);
+  });
+  document.querySelectorAll('.export-tab').forEach((btn, i) => {
+    btn.classList.toggle('active', ['pdf','excel','csv'][i] === name);
   });
 }
 
-// ═══ INPUT ═══
-function loadSample(){names=[...SAMPLE];renderNames();}
-
-function handleFile(inp){
-  const f=inp.files[0];if(!f)return;
-  const reader=new FileReader();
-  reader.onload=e=>{
-    const text=e.target.result;
-    const lines=text.split(/[\r\n]+/).map(l=>l.trim()).filter(Boolean);
-    const parsed=[];
-    lines.forEach(line=>{
-      line.split(/,|、|\t/).forEach(c=>{
-        const n=c.trim().replace(/["'「」]/g,'');
-        if(n&&!/^(氏名|名前|name|no\.?|番号|\d+)$/i.test(n))parsed.push(n);
-      });
-    });
-    names=[...new Set([...names,...parsed])];
-    renderNames();
-  };
-  reader.readAsText(f,'UTF-8');
-  inp.value='';
+// ═══ INPUT MODE ═══
+function setMode(m) {
+  ['file','paste','manual'].forEach(x => {
+    document.getElementById('md-' + x).style.display = x === m ? 'block' : 'none';
+    document.getElementById('mb-' + x).classList.toggle('active', x === m);
+  });
 }
 
-function parsePaste(){
-  const items=document.getElementById('paste-input').value.split(/[\r\n,、]+/).map(s=>s.trim()).filter(Boolean);
-  names=[...new Set([...names,...items])];
+// ═══ SAMPLE ═══
+function loadSample() {
+  persons = SAMPLE_NAMES.map((n, i) => ({ name: n, gender: SAMPLE_GENDERS[i] }));
   renderNames();
 }
 
-function addManual(){
-  const inp=document.getElementById('manual-name');
-  const v=inp.value.trim();
-  if(v&&!names.includes(v)){names.push(v);renderNames();}
-  inp.value='';inp.focus();
+// ═══ FILE INPUT ═══
+function handleFile(inp) {
+  const f = inp.files[0]; if (!f) return;
+  const ext = f.name.split('.').pop().toLowerCase();
+  if (ext === 'xlsx' || ext === 'xls') {
+    const reader = new FileReader();
+    reader.onload = e => parseExcelRoster(new Uint8Array(e.target.result));
+    reader.readAsArrayBuffer(f);
+  } else {
+    const reader = new FileReader();
+    reader.onload = e => parseTextRoster(e.target.result);
+    reader.readAsText(f, 'UTF-8');
+  }
+  inp.value = '';
 }
 
-function clearNames(){names=[];groups=[];renderNames();}
-function removeName(i){names.splice(i,1);renderNames();}
-
-function renderNames(){
-  const panel=document.getElementById('names-panel');
-  if(!names.length){panel.style.display='none';return;}
-  panel.style.display='block';
-  document.getElementById('cnt-display').textContent=names.length;
-  document.getElementById('names-preview').innerHTML=names.map((n,i)=>
-    `<span class="name-chip">${n}<button class="btn danger-sm" onclick="removeName(${i})" style="padding:0 2px;margin-left:3px">✕</button></span>`
-  ).join('');
+function parseExcelRoster(buffer) {
+  try {
+    const wb = XLSX.read(buffer, { type: 'array' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+    if (!rows.length) return;
+    const header = rows[0].map(c => String(c || '').trim());
+    const nameIdx = header.findIndex(h => /名前|氏名|name/i.test(h));
+    const genderIdx = header.findIndex(h => /性別|gender/i.test(h));
+    const newPersons = [];
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      const nameVal = nameIdx >= 0 ? row[nameIdx] : row[0];
+      const n = String(nameVal || '').trim().replace(/["'「」]/g, '');
+      if (!n || /^(氏名|名前|no\.?|番号|\d+)$/i.test(n)) continue;
+      let g = null;
+      if (genderIdx >= 0) {
+        const gv = String(row[genderIdx] || '').trim();
+        if (/^(m|男|male|boy)$/i.test(gv)) g = 'm';
+        else if (/^(f|女|female|girl)$/i.test(gv)) g = 'f';
+      }
+      newPersons.push({ name: n, gender: g });
+    }
+    persons = [...persons, ...newPersons].filter((p, i, a) => a.findIndex(q => q.name === p.name) === i);
+    renderNames();
+  } catch(e) { alert('Excelの読み込みに失敗しました: ' + e.message); }
 }
 
-// drag-drop
-document.getElementById('dropzone').addEventListener('dragover',e=>{e.preventDefault();document.getElementById('dropzone').classList.add('drag')});
-document.getElementById('dropzone').addEventListener('dragleave',()=>document.getElementById('dropzone').classList.remove('drag'));
-document.getElementById('dropzone').addEventListener('drop',e=>{
-  e.preventDefault();
-  document.getElementById('dropzone').classList.remove('drag');
-  const f=e.dataTransfer.files[0];
-  if(f){const i=document.getElementById('file-input');const dt=new DataTransfer();dt.items.add(f);i.files=dt.files;handleFile(i);}
+function parseTextRoster(text) {
+  const lines = text.split(/[\r\n]+/).map(l => l.trim()).filter(Boolean);
+  const parsed = [];
+  lines.forEach(line => {
+    line.split(/,|、|\t/).forEach(c => {
+      const n = c.trim().replace(/["'「」]/g, '');
+      if (n && !/^(氏名|名前|name|no\.?|番号|\d+)$/i.test(n)) parsed.push({ name: n, gender: null });
+    });
+  });
+  persons = [...persons, ...parsed].filter((p, i, a) => a.findIndex(q => q.name === p.name) === i);
+  renderNames();
+}
+
+function parsePaste() {
+  const items = document.getElementById('paste-input').value.split(/[\r\n,、]+/).map(s => s.trim()).filter(Boolean);
+  const newP = items.map(n => ({ name: n, gender: null }));
+  persons = [...persons, ...newP].filter((p, i, a) => a.findIndex(q => q.name === p.name) === i);
+  renderNames();
+}
+
+function addManual() {
+  const inp = document.getElementById('manual-name');
+  const v = inp.value.trim();
+  if (v && !persons.find(p => p.name === v)) { persons.push({ name: v, gender: null }); renderNames(); }
+  inp.value = ''; inp.focus();
+}
+
+function clearNames() { persons = []; groups = []; renderNames(); }
+
+function removePerson(i) { persons.splice(i, 1); renderNames(); }
+
+function cycleGender(i) {
+  const cur = persons[i].gender;
+  persons[i].gender = cur === null ? 'm' : cur === 'm' ? 'f' : null;
+  renderNames();
+}
+
+function renderNames() {
+  const panel = document.getElementById('names-panel');
+  if (!persons.length) { panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+  document.getElementById('cnt-display').textContent = persons.length;
+
+  const mc = persons.filter(p => p.gender === 'm').length;
+  const fc = persons.filter(p => p.gender === 'f').length;
+  const uc = persons.length - mc - fc;
+  const statsBar = document.getElementById('stats-bar');
+  statsBar.innerHTML = `
+    <div class="stat"><div class="v">${persons.length}</div><div class="l">名</div></div>
+    ${mc > 0 ? `<div class="stat male-stat"><div class="v">${mc}</div><div class="l">男</div></div>` : ''}
+    ${fc > 0 ? `<div class="stat female-stat"><div class="v">${fc}</div><div class="l">女</div></div>` : ''}
+    ${uc > 0 && (mc + fc > 0) ? `<div class="stat"><div class="v">${uc}</div><div class="l">未設定</div></div>` : ''}
+  `;
+
+  document.getElementById('names-preview').innerHTML = persons.map((p, i) => {
+    const cls = p.gender === 'm' ? 'male' : p.gender === 'f' ? 'female' : 'unset';
+    const tag = p.gender === 'm' ? '男' : p.gender === 'f' ? '女' : '';
+    return `<span class="name-chip ${cls}" onclick="cycleGender(${i})" title="クリックで性別切り替え">
+      ${p.name}${tag ? `<span style="font-size:10px;opacity:.7"> ${tag}</span>` : ''}
+      <button class="btn danger-sm" onclick="event.stopPropagation();removePerson(${i})" style="padding:0 2px;margin-left:3px">✕</button>
+    </span>`;
+  }).join('');
+
+  const gRow = document.getElementById('gender-stats-row');
+  if (mc + fc > 0) {
+    gRow.style.display = 'flex';
+    gRow.innerHTML = `<span><span class="legend-dot" style="background:#185FA5"></span>男：${mc}人</span>
+      <span><span class="legend-dot" style="background:#993556"></span>女：${fc}人</span>
+      ${uc > 0 ? `<span><span class="legend-dot" style="background:#ccc"></span>未設定：${uc}人</span>` : ''}`;
+  } else { gRow.style.display = 'none'; }
+
+  updateGenderSection();
+}
+
+// ═══ SETTINGS HELPERS ═══
+function updateGenderSection() {
+  const mc = persons.filter(p => p.gender === 'm').length;
+  const fc = persons.filter(p => p.gender === 'f').length;
+  const sec = document.getElementById('gender-balance-section');
+  sec.style.display = (mc + fc > 0) ? 'block' : 'none';
+}
+
+document.getElementById('remainder-mode').addEventListener('change', function() {
+  document.getElementById('min-size-col').style.display = this.value === 'min-size' ? 'block' : 'none';
+  updatePreview();
 });
 
-// ═══ SETTINGS ═══
-function updatePreview(){
-  const method=document.getElementById('method').value;
-  const param=parseInt(document.getElementById('param').value)||5;
-  const n=names.length||34;
-  const lbl=document.getElementById('param-label');
-  const hint=document.getElementById('preview-hint');
-  if(method==='bySize'){
-    lbl.textContent='1グループの人数';
-    const g=Math.ceil(n/param);
-    const rem=n%param;
-    hint.textContent=`${n}人 ÷ ${param}人 → ${g}グループ（端数: ${rem?rem+'人のグループが1つ':'なし'}）`;
+document.getElementById('gender-balance-toggle').addEventListener('change', function() {
+  document.getElementById('gender-balance-options').style.display = this.checked ? 'block' : 'none';
+  updatePreview();
+});
+
+function updatePreview() {
+  const method = document.getElementById('method').value;
+  const param = parseInt(document.getElementById('param').value) || 5;
+  const remMode = document.getElementById('remainder-mode').value;
+  const minSz = parseInt(document.getElementById('min-size').value) || 3;
+  const n = persons.length || 34;
+  const lbl = document.getElementById('param-label');
+  const hint = document.getElementById('preview-hint');
+  const warn = document.getElementById('warn-box');
+  warn.style.display = 'none';
+
+  let numGroups, baseSize, rem, hintText = '', warnText = '';
+
+  if (method === 'bySize') {
+    lbl.textContent = '1グループの人数';
+    numGroups = Math.ceil(n / param);
+    rem = n % param;
+    if (remMode === 'distribute') {
+      hintText = rem === 0
+        ? `${n}人 → ${numGroups}グループ（各${param}人）`
+        : `${n}人 → ${numGroups - 1}グループ（${param}人）＋最後の1グループ（${rem}人）→ 余り${rem}人を${numGroups-1}グループに分散 → 計${numGroups-1}グループ`;
+    } else if (remMode === 'new-group') {
+      hintText = rem === 0
+        ? `${n}人 → ${numGroups}グループ（各${param}人）`
+        : `${n}人 → ${numGroups - 1}グループ（${param}人）＋新グループ（${rem}人）= 計${numGroups}グループ`;
+    } else {
+      const { groupCount, sizes, warn: w } = calcMinSize(n, param, 'bySize', minSz);
+      hintText = `${n}人 → ${groupCount}グループ（最小${minSz}人を確保して調整）`;
+      if (w) { warnText = w; warn.style.display = 'block'; }
+    }
   } else {
-    lbl.textContent='グループ数';
-    hint.textContent=`${n}人 ÷ ${param}グループ → 1グループ最大${Math.ceil(n/param)}人`;
+    lbl.textContent = 'グループ数';
+    baseSize = Math.floor(n / param);
+    rem = n % param;
+    if (remMode === 'distribute') {
+      hintText = rem === 0
+        ? `${n}人 ÷ ${param}グループ → 各${baseSize}人`
+        : `${n}人 ÷ ${param}グループ → ${rem}グループが${baseSize + 1}人、残り${param - rem}グループが${baseSize}人`;
+    } else if (remMode === 'new-group') {
+      hintText = rem === 0
+        ? `${n}人 ÷ ${param}グループ → 各${baseSize}人`
+        : `${n}人 ÷ ${param}グループ（各${baseSize}人）→ 余り${rem}人で新グループ = 計${param + 1}グループ`;
+    } else {
+      const { groupCount, sizes, warn: w } = calcMinSize(n, param, 'byCount', minSz);
+      hintText = `${n}人 → ${groupCount}グループ（最小${minSz}人を確保して調整）`;
+      if (w) { warnText = w; warn.style.display = 'block'; }
+    }
+  }
+
+  hint.textContent = hintText;
+  if (warnText) { warn.textContent = '⚠ ' + warnText; }
+
+  // gender preview
+  const gbOn = document.getElementById('gender-balance-toggle').checked;
+  const mc = persons.filter(p => p.gender === 'm').length;
+  const fc = persons.filter(p => p.gender === 'f').length;
+  const gPrev = document.getElementById('gender-preview');
+  if (gbOn && (mc + fc) > 0) {
+    const estG = parseInt(document.getElementById('param').value) || 5;
+    const estGroups = method === 'bySize' ? Math.ceil(persons.length / estG) : estG;
+    const mPer = estGroups > 0 ? (mc / estGroups).toFixed(1) : 0;
+    const fPer = estGroups > 0 ? (fc / estGroups).toFixed(1) : 0;
+    gPrev.textContent = `各グループに男子約${mPer}人・女子約${fPer}人を目標に配分します`;
   }
 }
 
+// ── min-size helper ──
+function calcMinSize(n, param, method, minSz) {
+  let groupCount = method === 'bySize' ? Math.ceil(n / param) : param;
+  let warn = '';
+  if (minSz > n) { warn = `最小人数(${minSz})が総人数(${n})を超えています。全員1グループになります。`; groupCount = 1; }
+  else {
+    // Reduce groupCount until every group can have >= minSz
+    while (groupCount > 1 && Math.floor(n / groupCount) < minSz) groupCount--;
+  }
+  return { groupCount, warn };
+}
+
 // ═══ GROUP NAME ═══
-function getGroupName(i){
-  const prefix=document.getElementById('prefix').value||'グループ';
-  const fmt=document.getElementById('fmt').value;
-  if(fmt==='alpha')return prefix+String.fromCharCode(65+i);
-  if(fmt==='kanji')return prefix+(KANJI[i]||i+1);
-  return prefix+(i+1);
+function getGroupName(i) {
+  const prefix = document.getElementById('prefix').value || 'グループ';
+  const fmt = document.getElementById('fmt').value;
+  if (fmt === 'alpha') return prefix + String.fromCharCode(65 + i);
+  if (fmt === 'kanji') return prefix + (KANJI[i] || i + 1);
+  return prefix + (i + 1);
 }
 
 // ═══ GENERATE ═══
-function doGenerate(){
-  const method=document.getElementById('method').value;
-  const param=parseInt(document.getElementById('param').value)||5;
-  const order=document.getElementById('order').value;
-  let sorted=[...names];
-  if(order==='random')for(let i=sorted.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[sorted[i],sorted[j]]=[sorted[j],sorted[i]];}
-  else if(order==='alpha')sorted.sort((a,b)=>a.localeCompare(b,'ja'));
-  const numGroups=method==='bySize'?Math.ceil(sorted.length/param):param;
-  groups=Array.from({length:numGroups},()=>[]);
-  sorted.forEach((n,i)=>groups[i%numGroups].push(n));
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
 }
 
-function generateAndGoResult(){
-  if(!names.length){alert('名前を入力してください');switchTab('input');return;}
-  doGenerate();renderGroups();switchTab('result');
+function doGenerate() {
+  const method = document.getElementById('method').value;
+  const param = parseInt(document.getElementById('param').value) || 5;
+  const order = document.getElementById('order').value;
+  const remMode = document.getElementById('remainder-mode').value;
+  const minSz = parseInt(document.getElementById('min-size').value) || 3;
+  const genderBalance = document.getElementById('gender-balance-toggle').checked;
+  const genderMode = document.getElementById('gender-mode').value;
+
+  if (genderBalance && document.getElementById('gender-balance-section').style.display !== 'none') {
+    doGenerateGenderBalanced(method, param, order, remMode, minSz, genderMode);
+  } else {
+    doGenerateSimple(method, param, order, remMode, minSz);
+  }
 }
 
-function generateAndGoReveal(){
-  if(!names.length){alert('名前を入力してください');switchTab('input');return;}
-  doGenerate();renderGroups();switchTab('reveal');startReveal();
+function sortPersons(arr, order) {
+  if (order === 'random') return shuffle(arr);
+  if (order === 'alpha') return [...arr].sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+  return [...arr];
 }
 
-function regenerate(){
-  if(!names.length)return;
-  doGenerate();renderGroups();
+function buildGroupsFromSorted(sorted, numGroups) {
+  const g = Array.from({ length: numGroups }, () => []);
+  sorted.forEach((p, i) => g[i % numGroups].push(p));
+  return g;
+}
+
+function calcNumGroups(method, param, n, remMode, minSz) {
+  let numGroups;
+  if (method === 'bySize') {
+    numGroups = Math.ceil(n / param);
+    if (remMode === 'distribute' && n % param !== 0) numGroups = numGroups - 1;
+    if (remMode === 'min-size') {
+      const { groupCount } = calcMinSize(n, param, 'bySize', minSz);
+      numGroups = groupCount;
+    }
+  } else {
+    numGroups = param;
+    if (remMode === 'new-group' && n % param !== 0) numGroups = param + 1;
+    if (remMode === 'min-size') {
+      const { groupCount } = calcMinSize(n, param, 'byCount', minSz);
+      numGroups = groupCount;
+    }
+  }
+  return Math.max(1, numGroups);
+}
+
+function doGenerateSimple(method, param, order, remMode, minSz) {
+  const sorted = sortPersons(persons, order);
+  const numGroups = calcNumGroups(method, param, sorted.length, remMode, minSz);
+  groups = buildGroupsFromSorted(sorted, numGroups);
+}
+
+function doGenerateGenderBalanced(method, param, order, remMode, minSz, genderMode) {
+  const numGroups = calcNumGroups(method, param, persons.length, remMode, minSz);
+  const males = sortPersons(persons.filter(p => p.gender === 'm'), order);
+  const females = sortPersons(persons.filter(p => p.gender === 'f'), order);
+  const unset = sortPersons(persons.filter(p => p.gender === null), order);
+
+  const g = Array.from({ length: numGroups }, () => []);
+
+  // Distribute males round-robin
+  males.forEach((p, i) => g[i % numGroups].push(p));
+  // Distribute females round-robin (starting from group that has fewest so far)
+  females.forEach((p, i) => {
+    // Find group with least members
+    const minIdx = g.reduce((mi, grp, gi) => grp.length < g[mi].length ? gi : mi, 0);
+    g[minIdx].push(p);
+  });
+  // Distribute unset
+  unset.forEach((p, i) => {
+    const minIdx = g.reduce((mi, grp, gi) => grp.length < g[mi].length ? gi : mi, 0);
+    g[minIdx].push(p);
+  });
+  groups = g;
+}
+
+function generateAndGoResult() {
+  if (!persons.length) { alert('名前を入力してください'); switchTab('input'); return; }
+  doGenerate(); renderGroups(); switchTab('result');
+}
+
+function generateAndGoReveal() {
+  if (!persons.length) { alert('名前を入力してください'); switchTab('input'); return; }
+  doGenerate(); renderGroups(); switchTab('reveal'); startReveal();
+}
+
+function regenerate() {
+  if (!persons.length) return;
+  doGenerate(); renderGroups();
 }
 
 // ═══ RENDER GROUPS ═══
-function renderGroups(){
-  const grid=document.getElementById('groups-grid');
-  document.getElementById('result-info').textContent=`${names.length}人 → ${groups.length}グループ`;
-  document.getElementById('reveal-hint').textContent=`${groups.length}グループ生成済み — 演出スタートをクリック`;
-  grid.innerHTML=groups.map((g,i)=>{
-    const c=GROUP_ACCENT_COLORS[i%GROUP_ACCENT_COLORS.length];
-    const l=GROUP_ACCENT_LIGHTS[i%GROUP_ACCENT_LIGHTS.length];
-    return`<div class="gc"><div class="gh" style="background:${l};color:${c}"><span>${getGroupName(i)}</span><span style="font-size:11px;opacity:.65">${g.length}名</span></div><div class="gb">${g.map((n,j)=>`<div class="mbr"><span class="mnum">${j+1}</span>${n}</div>`).join('')}</div></div>`;
+function renderGroups() {
+  const grid = document.getElementById('groups-grid');
+  const useGender = persons.some(p => p.gender !== null);
+  document.getElementById('result-info').textContent = `${persons.length}人 → ${groups.length}グループ`;
+  document.getElementById('reveal-hint').textContent = `${groups.length}グループ生成済み — 演出スタートをクリック`;
+  grid.innerHTML = groups.map((g, i) => {
+    const c = GROUP_ACCENT_COLORS[i % GROUP_ACCENT_COLORS.length];
+    const l = GROUP_ACCENT_LIGHTS[i % GROUP_ACCENT_LIGHTS.length];
+    const mc = g.filter(p => p.gender === 'm').length;
+    const fc = g.filter(p => p.gender === 'f').length;
+    const gInfo = useGender ? `<span style="font-size:11px;opacity:.7;font-weight:400">${mc>0?`♂${mc}`:''}${fc>0?`♀${fc}`:''}</span>` : '';
+    return `<div class="gc">
+      <div class="gh" style="background:${l};color:${c}">
+        <span>${getGroupName(i)} ${gInfo}</span>
+        <span style="font-size:11px;opacity:.65">${g.length}名</span>
+      </div>
+      <div class="gb">${g.map((p, j) => `
+        <div class="mbr">
+          <span class="mnum">${j + 1}</span>${p.name}
+          ${useGender && p.gender ? `<span class="gender-tag ${p.gender}">${p.gender === 'm' ? '男' : '女'}</span>` : ''}
+        </div>`).join('')}
+      </div>
+    </div>`;
   }).join('');
 }
 
 // ═══ REVEAL ═══
-function startReveal(){
-  if(!groups.length){alert('先にグループを生成してください');return;}
-  revealIdx=0;
-  document.getElementById('stage-idle').style.display='none';
-  document.getElementById('spotlight').style.display='block';
+function startReveal() {
+  if (!groups.length) { alert('先にグループを生成してください'); return; }
+  revealIdx = 0;
+  document.getElementById('stage-idle').style.display = 'none';
+  document.getElementById('spotlight').style.display = 'block';
   document.getElementById('finale-screen').classList.remove('active');
-  buildDots();
-  showReveal(0);
+  buildDots(); showReveal(0);
 }
 
-function buildDots(){
-  document.getElementById('progress-dots').innerHTML=groups.map((_,i)=>
-    `<div class="dot${i===0?' active':''}" id="dot-${i}" onclick="showReveal(${i})"></div>`
+function buildDots() {
+  document.getElementById('progress-dots').innerHTML = groups.map((_, i) =>
+    `<div class="dot${i === 0 ? ' active' : ''}" id="dot-${i}" onclick="showReveal(${i})"></div>`
   ).join('');
 }
 
-function showReveal(idx){
-  const screen=document.getElementById('reveal-screen');
+function showReveal(idx) {
+  const screen = document.getElementById('reveal-screen');
   screen.classList.remove('active');
-  setTimeout(()=>{
-    revealIdx=idx;
-    const g=groups[idx];
-    const name=getGroupName(idx);
-    const c=GROUP_ACCENT_COLORS[idx%GROUP_ACCENT_COLORS.length];
-    document.getElementById('color-bar').style.background=c;
-    document.getElementById('counter-badge').textContent=`${idx+1} / ${groups.length}`;
-    document.getElementById('rv-title').textContent=name;
-    document.getElementById('rv-count').textContent=`${g.length}名`;
-    document.getElementById('rv-members').innerHTML=g.map((n,i)=>
-      `<div class="mp" style="animation-delay:${.12+i*.07}s;border-color:${c}44">${n}</div>`
+  setTimeout(() => {
+    revealIdx = idx;
+    const g = groups[idx];
+    const name = getGroupName(idx);
+    const c = GROUP_ACCENT_COLORS[idx % GROUP_ACCENT_COLORS.length];
+    const useGender = persons.some(p => p.gender !== null);
+    const mc = g.filter(p => p.gender === 'm').length;
+    const fc = g.filter(p => p.gender === 'f').length;
+    document.getElementById('color-bar').style.background = c;
+    document.getElementById('counter-badge').textContent = `${idx + 1} / ${groups.length}`;
+    document.getElementById('rv-title').textContent = name;
+    document.getElementById('rv-count').textContent = `${g.length}名${useGender && (mc+fc>0) ? ` (♂${mc} ♀${fc})` : ''}`;
+    document.getElementById('rv-members').innerHTML = g.map((p, i) =>
+      `<div class="mp ${p.gender === 'm' ? 'mp-m' : p.gender === 'f' ? 'mp-f' : ''}" style="animation-delay:${.12 + i * .07}s;border-color:${c}44">${p.name}</div>`
     ).join('');
-    document.querySelectorAll('.dot').forEach((d,i)=>d.classList.toggle('active',i===idx));
-    document.getElementById('nav-prev').disabled=idx===0;
-    document.getElementById('nav-next').textContent=idx===groups.length-1?'完了 🎉':'次へ →';
+    document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === idx));
+    document.getElementById('nav-prev').disabled = idx === 0;
+    document.getElementById('nav-next').textContent = idx === groups.length - 1 ? '完了 🎉' : '次へ →';
     screen.classList.add('active');
     fireConfetti(c);
-  },250);
+  }, 250);
 }
 
-function navReveal(dir){
-  const next=revealIdx+dir;
-  if(next<0)return;
-  if(next>=groups.length){showFinale();return;}
+function navReveal(dir) {
+  const next = revealIdx + dir;
+  if (next < 0) return;
+  if (next >= groups.length) { showFinale(); return; }
   showReveal(next);
 }
 
-function showFinale(){
+function showFinale() {
   document.getElementById('reveal-screen').classList.remove('active');
-  document.getElementById('spotlight').style.display='none';
-  document.getElementById('finale-sub').textContent=`${names.length}人を${groups.length}グループに分けました`;
+  document.getElementById('spotlight').style.display = 'none';
+  document.getElementById('finale-sub').textContent = `${persons.length}人を${groups.length}グループに分けました`;
   document.getElementById('finale-screen').classList.add('active');
   fireBigConfetti();
 }
 
-function closeReveal(){
+function closeReveal() {
   document.getElementById('reveal-screen').classList.remove('active');
   document.getElementById('finale-screen').classList.remove('active');
-  document.getElementById('spotlight').style.display='none';
-  document.getElementById('stage-idle').style.display='block';
+  document.getElementById('spotlight').style.display = 'none';
+  document.getElementById('stage-idle').style.display = 'block';
   stopConfetti();
   switchTab('result');
 }
 
 // ═══ CONFETTI ═══
-function makeParticles(canvas,accentColor,fromTop){
-  const cols=['#fff','#ffe566',accentColor,'rgba(255,255,255,.6)','#ffd700',accentColor+'bb'];
-  const count=fromTop?110:55;
-  return Array.from({length:count},()=>({
-    x:fromTop?Math.random()*canvas.width:canvas.width*(.3+Math.random()*.4),
-    y:fromTop?-10:canvas.height*.3+Math.random()*30,
-    vx:(Math.random()-.5)*(fromTop?5:7),
-    vy:fromTop?(3+Math.random()*4):(-8-Math.random()*6),
-    angle:Math.random()*360,spin:(Math.random()-.5)*8,
-    w:6+Math.random()*8,h:3+Math.random()*5,
-    color:cols[Math.floor(Math.random()*cols.length)],
-    alpha:1,life:0,maxLife:(fromTop?90:55)+Math.random()*50
+function makeParticles(canvas, accentColor, fromTop) {
+  const cols = ['#fff','#ffe566', accentColor,'rgba(255,255,255,.6)','#ffd700', accentColor+'bb'];
+  const count = fromTop ? 110 : 55;
+  return Array.from({ length: count }, () => ({
+    x: fromTop ? Math.random() * canvas.width : canvas.width * (.3 + Math.random() * .4),
+    y: fromTop ? -10 : canvas.height * .3 + Math.random() * 30,
+    vx: (Math.random() - .5) * (fromTop ? 5 : 7),
+    vy: fromTop ? (3 + Math.random() * 4) : (-8 - Math.random() * 6),
+    angle: Math.random() * 360, spin: (Math.random() - .5) * 8,
+    w: 6 + Math.random() * 8, h: 3 + Math.random() * 5,
+    color: cols[Math.floor(Math.random() * cols.length)],
+    alpha: 1, life: 0, maxLife: (fromTop ? 90 : 55) + Math.random() * 50
   }));
 }
 
-function initCanvas(){
-  const canvas=document.getElementById('confetti-canvas');
-  const rect=document.getElementById('stage').getBoundingClientRect();
-  canvas.width=Math.max(rect.width,400);
-  canvas.height=Math.max(rect.height,300);
+function initCanvas() {
+  const canvas = document.getElementById('confetti-canvas');
+  const rect = document.getElementById('stage').getBoundingClientRect();
+  canvas.width = Math.max(rect.width, 400); canvas.height = Math.max(rect.height, 300);
   return canvas;
 }
 
-function fireConfetti(c){
-  const canvas=initCanvas();
-  confettiParticles=makeParticles(canvas,c,false);
-  if(confettiAnim)cancelAnimationFrame(confettiAnim);
-  animConfetti(canvas.getContext('2d'),canvas);
+function fireConfetti(c) {
+  const canvas = initCanvas();
+  confettiParticles = makeParticles(canvas, c, false);
+  if (confettiAnim) cancelAnimationFrame(confettiAnim);
+  animConfetti(canvas.getContext('2d'), canvas);
 }
 
-function fireBigConfetti(){
-  const canvas=initCanvas();
-  confettiParticles=makeParticles(canvas,'#7F77DD',true);
-  if(confettiAnim)cancelAnimationFrame(confettiAnim);
-  animConfetti(canvas.getContext('2d'),canvas);
+function fireBigConfetti() {
+  const canvas = initCanvas();
+  confettiParticles = makeParticles(canvas, '#7F77DD', true);
+  if (confettiAnim) cancelAnimationFrame(confettiAnim);
+  animConfetti(canvas.getContext('2d'), canvas);
 }
 
-function animConfetti(ctx,canvas){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  let alive=false;
-  confettiParticles.forEach(p=>{
-    p.life++;p.x+=p.vx;p.vy+=.2;p.y+=p.vy;p.angle+=p.spin;
-    p.alpha=Math.max(0,1-p.life/p.maxLife);
-    if(p.alpha>0)alive=true;
-    ctx.save();ctx.globalAlpha=p.alpha;ctx.translate(p.x,p.y);ctx.rotate(p.angle*Math.PI/180);
-    ctx.fillStyle=p.color;ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);ctx.restore();
+function animConfetti(ctx, canvas) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  let alive = false;
+  confettiParticles.forEach(p => {
+    p.life++; p.x += p.vx; p.vy += .2; p.y += p.vy; p.angle += p.spin;
+    p.alpha = Math.max(0, 1 - p.life / p.maxLife);
+    if (p.alpha > 0) alive = true;
+    ctx.save(); ctx.globalAlpha = p.alpha; ctx.translate(p.x, p.y); ctx.rotate(p.angle * Math.PI / 180);
+    ctx.fillStyle = p.color; ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h); ctx.restore();
   });
-  if(alive)confettiAnim=requestAnimationFrame(()=>animConfetti(ctx,canvas));
-  else ctx.clearRect(0,0,canvas.width,canvas.height);
+  if (alive) confettiAnim = requestAnimationFrame(() => animConfetti(ctx, canvas));
+  else ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
-function stopConfetti(){
-  if(confettiAnim)cancelAnimationFrame(confettiAnim);
-  const canvas=document.getElementById('confetti-canvas');
-  if(canvas)canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height);
+function stopConfetti() {
+  if (confettiAnim) cancelAnimationFrame(confettiAnim);
+  const canvas = document.getElementById('confetti-canvas');
+  if (canvas) canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
 }
 
 // ═══ PDF COLOR ═══
-function selectColor(el){
-  document.querySelectorAll('.color-opt').forEach(c=>c.classList.remove('selected'));
+function selectColor(el) {
+  document.querySelectorAll('.color-opt').forEach(c => c.classList.remove('selected'));
   el.classList.add('selected');
-  selectedColor=el.dataset.key;
+  selectedColor = el.dataset.key;
 }
 
 // ═══ PDF ═══
-function hexToRgb(h){return[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)]}
+function hexToRgb(h) { return [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)]; }
 
-function downloadPDF(){
-  if(!groups.length){alert('グループを生成してください');switchTab('result');return;}
-  const status=document.getElementById('pdf-status');
-  status.style.display='block';status.textContent='PDF生成中...';
-  setTimeout(()=>{
-    try{
-      const {jsPDF}=window.jspdf;
-      const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
-      const title=document.getElementById('pdf-title').value||'グループ分け名簿';
-      const sub=document.getElementById('pdf-sub').value||'';
-      const cols=parseInt(document.getElementById('pdf-cols').value)||3;
-      const cHex=GC_COLORS[selectedColor]||'#185FA5';
-      const lHex=GC_LIGHTS[selectedColor]||'#E6F1FB';
-      const hRGB=hexToRgb(cHex);
-      const lRGB=hexToRgb(lHex);
-      const pageW=doc.internal.pageSize.getWidth();
-      const margin=14;let y=margin;
+function downloadPDF() {
+  if (!groups.length) { alert('グループを生成してください'); switchTab('result'); return; }
+  const status = document.getElementById('pdf-status');
+  status.style.display = 'block'; status.textContent = 'PDF生成中...';
+  setTimeout(() => {
+    try {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const title = document.getElementById('pdf-title').value || 'グループ分け名簿';
+      const sub = document.getElementById('pdf-sub').value || '';
+      const cols = parseInt(document.getElementById('pdf-cols').value) || 3;
+      const showGender = document.getElementById('pdf-gender').value === 'show';
+      const cHex = GC_COLORS[selectedColor] || '#185FA5';
+      const lHex = GC_LIGHTS[selectedColor] || '#E6F1FB';
+      const hRGB = hexToRgb(cHex); const lRGB = hexToRgb(lHex);
+      const pageW = doc.internal.pageSize.getWidth();
+      const margin = 14; let y = margin;
 
-      // Header
-      doc.setFillColor(...hRGB);doc.rect(0,0,pageW,15,'F');
-      doc.setFontSize(12);doc.setTextColor(255,255,255);doc.setFont(undefined,'bold');
-      doc.text(title,margin,10);
-      if(sub){doc.setFontSize(8);doc.setFont(undefined,'normal');doc.text(sub,pageW-margin,10,{align:'right'});}
-      y=22;
+      doc.setFillColor(...hRGB); doc.rect(0, 0, pageW, 15, 'F');
+      doc.setFontSize(12); doc.setTextColor(255, 255, 255); doc.setFont(undefined, 'bold');
+      doc.text(title, margin, 10);
+      if (sub) { doc.setFontSize(8); doc.setFont(undefined, 'normal'); doc.text(sub, pageW - margin, 10, { align: 'right' }); }
+      y = 22;
 
-      doc.setFontSize(7.5);doc.setTextColor(150,150,150);doc.setFont(undefined,'normal');
-      doc.text(`生成日：${new Date().toLocaleDateString('ja-JP')}　合計 ${names.length}人 / ${groups.length}グループ`,margin,y);
-      y+=7;
+      doc.setFontSize(7.5); doc.setTextColor(150, 150, 150); doc.setFont(undefined, 'normal');
+      doc.text(`生成日：${new Date().toLocaleDateString('ja-JP')}　合計 ${persons.length}人 / ${groups.length}グループ`, margin, y);
+      y += 7;
 
-      const gapX=4;
-      const colW=(pageW-margin*2-gapX*(cols-1))/cols;
-      let col=0,rowY=y,rowMaxH=0;
+      const gapX = 4;
+      const colW = (pageW - margin * 2 - gapX * (cols - 1)) / cols;
+      let col = 0, rowY = y, rowMaxH = 0;
 
-      groups.forEach((g,idx)=>{
-        const x=margin+col*(colW+gapX);
-        const cardH=8+g.length*4.8+4;
-
-        if(rowY+cardH>doc.internal.pageSize.getHeight()-10){
-          doc.addPage();rowY=margin+5;col=0;rowMaxH=0;
+      groups.forEach((g, idx) => {
+        const x = margin + col * (colW + gapX);
+        const cardH = 8 + g.length * 5.2 + 4;
+        if (rowY + cardH > doc.internal.pageSize.getHeight() - 10) {
+          doc.addPage(); rowY = margin + 5; col = 0; rowMaxH = 0;
         }
-
-        doc.setFillColor(...lRGB);doc.setDrawColor(...hRGB);doc.setLineWidth(.3);
-        doc.roundedRect(x,rowY,colW,cardH,1.5,1.5,'FD');
-        doc.setFillColor(...hRGB);doc.roundedRect(x,rowY,colW,7,1.5,1.5,'F');
-        doc.rect(x,rowY+3.5,colW,3.5,'F');
-
-        doc.setFontSize(8.5);doc.setTextColor(255,255,255);doc.setFont(undefined,'bold');
-        doc.text(getGroupName(idx),x+3,rowY+5);
-        doc.text(`${g.length}人`,x+colW-3,rowY+5,{align:'right'});
-
-        doc.setFont(undefined,'normal');doc.setFontSize(7.5);doc.setTextColor(40,40,40);
-        g.forEach((n,ni)=>doc.text(`${ni+1}. ${n}`,x+3,rowY+11+ni*4.8));
-
-        rowMaxH=Math.max(rowMaxH,cardH);
+        doc.setFillColor(...lRGB); doc.setDrawColor(...hRGB); doc.setLineWidth(.3);
+        doc.roundedRect(x, rowY, colW, cardH, 1.5, 1.5, 'FD');
+        doc.setFillColor(...hRGB); doc.roundedRect(x, rowY, colW, 7, 1.5, 1.5, 'F');
+        doc.rect(x, rowY + 3.5, colW, 3.5, 'F');
+        doc.setFontSize(8.5); doc.setTextColor(255, 255, 255); doc.setFont(undefined, 'bold');
+        doc.text(getGroupName(idx), x + 3, rowY + 5);
+        const mc = g.filter(p => p.gender === 'm').length;
+        const fc2 = g.filter(p => p.gender === 'f').length;
+        const countText = showGender && (mc + fc2 > 0) ? `${g.length}人 (♂${mc}♀${fc2})` : `${g.length}人`;
+        doc.text(countText, x + colW - 3, rowY + 5, { align: 'right' });
+        doc.setFont(undefined, 'normal'); doc.setFontSize(7.5); doc.setTextColor(40, 40, 40);
+        g.forEach((p, ni) => {
+          const gTag = showGender && p.gender ? (p.gender === 'm' ? '男 ' : '女 ') : '';
+          doc.text(`${ni + 1}. ${gTag}${p.name}`, x + 3, rowY + 11 + ni * 5.2);
+        });
+        rowMaxH = Math.max(rowMaxH, cardH);
         col++;
-        if(col>=cols){col=0;rowY+=rowMaxH+gapX;rowMaxH=0;}
+        if (col >= cols) { col = 0; rowY += rowMaxH + gapX; rowMaxH = 0; }
       });
 
       doc.save(`${title}.pdf`);
-      status.textContent='✓ PDFを保存しました';
-    }catch(e){
-      status.textContent='エラー: '+e.message;
-    }
-  },150);
+      status.textContent = '✓ PDFを保存しました';
+    } catch(e) { status.textContent = 'エラー: ' + e.message; }
+  }, 150);
 }
 
-function printGroups(){
-  if(!groups.length){alert('グループを生成してください');return;}
-  const cHex=GC_COLORS[selectedColor]||'#185FA5';
-  const lHex=GC_LIGHTS[selectedColor]||'#E6F1FB';
-  const title=document.getElementById('pdf-title').value||'グループ分け名簿';
-  const sub=document.getElementById('pdf-sub').value||'';
-  const cols=document.getElementById('pdf-cols').value||3;
-  const html=`<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><title>${title}</title>
+function printGroups() {
+  if (!groups.length) { alert('グループを生成してください'); return; }
+  const cHex = GC_COLORS[selectedColor] || '#185FA5';
+  const lHex = GC_LIGHTS[selectedColor] || '#E6F1FB';
+  const title = document.getElementById('pdf-title').value || 'グループ分け名簿';
+  const sub = document.getElementById('pdf-sub').value || '';
+  const cols = document.getElementById('pdf-cols').value || 3;
+  const showGender = document.getElementById('pdf-gender').value === 'show';
+  const html = `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><title>${title}</title>
 <style>body{font-family:'Hiragino Sans',sans-serif;margin:20px;color:#1a1917}
 h1{font-size:18px;margin:0}h2{font-size:12px;font-weight:normal;color:#666;margin:4px 0 16px}
 .grid{display:grid;grid-template-columns:repeat(${cols},1fr);gap:10px}
@@ -790,18 +1189,192 @@ h1{font-size:18px;margin:0}h2{font-size:12px;font-weight:normal;color:#666;margi
 .m{font-size:11px;padding:3px 0;border-bottom:1px solid ${cHex}33}
 .m:last-child{border:none}
 .foot{font-size:11px;color:#999;margin-top:12px}
-@media print{@page{margin:12mm}button{display:none}}</style></head>
-<body><h1>${title}</h1>${sub?`<h2>${sub}</h2>`:'<br>'}
-<div class="grid">${groups.map((g,i)=>`<div class="gc"><div class="gh"><span>${getGroupName(i)}</span><span>${g.length}人</span></div><div class="gb">${g.map((n,j)=>`<div class="m">${j+1}. ${n}</div>`).join('')}</div></div>`).join('')}</div>
-<p class="foot">合計 ${names.length}人 / ${groups.length}グループ　${new Date().toLocaleDateString('ja-JP')}</p>
+.gtag{font-size:10px;padding:1px 4px;border-radius:8px;margin-right:3px}
+.gtag.m{background:#E6F1FB;color:#185FA5}.gtag.f{background:#FBEAF0;color:#993556}
+@media print{@page{margin:12mm}}</style></head>
+<body><h1>${title}</h1>${sub ? `<h2>${sub}</h2>` : '<br>'}
+<div class="grid">${groups.map((g, i) => {
+    const mc = g.filter(p => p.gender === 'm').length;
+    const fc2 = g.filter(p => p.gender === 'f').length;
+    const cnt = showGender && (mc+fc2>0) ? `${g.length}人 (♂${mc}♀${fc2})` : `${g.length}人`;
+    return `<div class="gc"><div class="gh"><span>${getGroupName(i)}</span><span>${cnt}</span></div>
+<div class="gb">${g.map((p,j) => `<div class="m">${j+1}. ${showGender && p.gender ? `<span class="gtag ${p.gender}">${p.gender==='m'?'男':'女'}</span>` : ''}${p.name}</div>`).join('')}</div></div>`;
+  }).join('')}</div>
+<p class="foot">合計 ${persons.length}人 / ${groups.length}グループ　${new Date().toLocaleDateString('ja-JP')}</p>
 <script>window.onload=()=>window.print()<\/script></body></html>`;
-  const w=window.open('','_blank');
-  if(w){w.document.write(html);w.document.close();}
+  const w = window.open('', '_blank');
+  if (w) { w.document.write(html); w.document.close(); }
 }
+
+// ═══ CSV BUILDER ═══
+function buildCSVData(layout, includeGender) {
+  if (!groups.length) return '';
+  const BOM = '\uFEFF';
+  let rows = [];
+  if (layout === 'tall') {
+    const header = includeGender ? ['グループ','番号','名前','性別'] : ['グループ','番号','名前'];
+    rows.push(header);
+    groups.forEach((g, gi) => {
+      g.forEach((p, pi) => {
+        const row = [getGroupName(gi), pi + 1, p.name];
+        if (includeGender) row.push(p.gender === 'm' ? '男' : p.gender === 'f' ? '女' : '');
+        rows.push(row);
+      });
+    });
+  } else {
+    // wide: columns per group
+    const maxLen = Math.max(...groups.map(g => g.length));
+    if (includeGender) {
+      const header = groups.flatMap((_, i) => [getGroupName(i), '性別', '']);
+      rows.push(header);
+      for (let r = 0; r < maxLen; r++) {
+        const row = groups.flatMap(g => {
+          if (r < g.length) return [g[r].name, g[r].gender === 'm' ? '男' : g[r].gender === 'f' ? '女' : '', ''];
+          return ['', '', ''];
+        });
+        rows.push(row);
+      }
+    } else {
+      rows.push(groups.map((_, i) => getGroupName(i)));
+      for (let r = 0; r < maxLen; r++) {
+        rows.push(groups.map(g => r < g.length ? g[r].name : ''));
+      }
+    }
+  }
+  return rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\r\n');
+}
+
+function downloadCSV() {
+  if (!groups.length) { alert('グループを生成してください'); return; }
+  const layout = document.getElementById('csv-layout').value;
+  const includeGender = document.getElementById('csv-gender').value === 'show';
+  const enc = document.getElementById('csv-encoding').value;
+  const title = document.getElementById('csv-title').value || 'グループ分け名簿';
+  const csv = buildCSVData(layout, includeGender);
+  const content = enc === 'utf8bom' ? '\uFEFF' + csv : csv;
+  const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${title}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  const s = document.getElementById('csv-status');
+  s.style.display = 'block'; s.textContent = '✓ CSVを保存しました';
+}
+
+function previewCSV() {
+  if (!groups.length) { alert('グループを生成してください'); return; }
+  const layout = document.getElementById('csv-layout').value;
+  const includeGender = document.getElementById('csv-gender').value === 'show';
+  const csv = buildCSVData(layout, includeGender);
+  const pre = document.getElementById('csv-preview');
+  pre.style.display = 'block';
+  pre.textContent = csv.split('\r\n').slice(0, 20).join('\n') + (csv.split('\r\n').length > 20 ? '\n...' : '');
+}
+
+// ═══ EXCEL ═══
+function downloadExcel() {
+  if (!groups.length) { alert('グループを生成してください'); return; }
+  const layout = document.getElementById('xl-layout').value;
+  const includeGender = document.getElementById('xl-gender').value === 'show';
+  const title = document.getElementById('xl-title').value || 'グループ分け名簿';
+  const sub = document.getElementById('xl-sub').value || '';
+  const cHex = GC_COLORS[selectedColor] || '#185FA5';
+
+  const wb = XLSX.utils.book_new();
+
+  // Build data array
+  let aoa = [];
+  if (layout === 'tall') {
+    if (sub) aoa.push([sub]);
+    aoa.push(includeGender ? ['グループ', '番号', '名前', '性別'] : ['グループ', '番号', '名前']);
+    groups.forEach((g, gi) => {
+      g.forEach((p, pi) => {
+        const row = [getGroupName(gi), pi + 1, p.name];
+        if (includeGender) row.push(p.gender === 'm' ? '男' : p.gender === 'f' ? '女' : '');
+        aoa.push(row);
+      });
+    });
+  } else {
+    const maxLen = Math.max(...groups.map(g => g.length));
+    if (sub) aoa.push([sub]);
+    if (includeGender) {
+      aoa.push(groups.flatMap((_, i) => [getGroupName(i), '性別', '']));
+      for (let r = 0; r < maxLen; r++) {
+        aoa.push(groups.flatMap(g => r < g.length ? [g[r].name, g[r].gender === 'm' ? '男' : g[r].gender === 'f' ? '女' : '', ''] : ['', '', '']));
+      }
+    } else {
+      aoa.push(groups.map((_, i) => getGroupName(i)));
+      for (let r = 0; r < maxLen; r++) {
+        aoa.push(groups.map(g => r < g.length ? g[r].name : ''));
+      }
+    }
+  }
+
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+  // Style header row
+  const headerRow = sub ? 1 : 0;
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  for (let C = range.s.c; C <= range.e.c; C++) {
+    const cell = ws[XLSX.utils.encode_cell({ r: headerRow, c: C })];
+    if (cell) {
+      cell.s = {
+        fill: { fgColor: { rgb: cHex.replace('#', '') } },
+        font: { bold: true, color: { rgb: 'FFFFFF' } },
+        alignment: { horizontal: 'center' }
+      };
+    }
+  }
+
+  // Column widths
+  ws['!cols'] = Array.from({ length: range.e.c + 1 }, () => ({ wch: 14 }));
+
+  XLSX.utils.book_append_sheet(wb, ws, 'グループ一覧');
+
+  // Summary sheet
+  const sumAoa = [
+    ['生成日', new Date().toLocaleDateString('ja-JP')],
+    ['合計人数', persons.length],
+    ['グループ数', groups.length],
+  ];
+  const mc = persons.filter(p => p.gender === 'm').length;
+  const fc2 = persons.filter(p => p.gender === 'f').length;
+  if (mc + fc2 > 0) {
+    sumAoa.push(['男子', mc], ['女子', fc2]);
+  }
+  sumAoa.push(['']);
+  groups.forEach((g, i) => {
+    const gmc = g.filter(p => p.gender === 'm').length;
+    const gfc = g.filter(p => p.gender === 'f').length;
+    const row = [getGroupName(i), `${g.length}名`];
+    if (mc + fc2 > 0) row.push(`♂${gmc}`, `♀${gfc}`);
+    sumAoa.push(row);
+  });
+  const ws2 = XLSX.utils.aoa_to_sheet(sumAoa);
+  ws2['!cols'] = [{ wch: 16 }, { wch: 10 }, { wch: 8 }, { wch: 8 }];
+  XLSX.utils.book_append_sheet(wb, ws2, 'サマリー');
+
+  XLSX.writeFile(wb, `${title}.xlsx`);
+  const s = document.getElementById('xl-status');
+  s.style.display = 'block'; s.textContent = '✓ Excelを保存しました';
+}
+
+// ── drag-drop ──
+document.getElementById('dropzone').addEventListener('dragover', e => { e.preventDefault(); document.getElementById('dropzone').classList.add('drag'); });
+document.getElementById('dropzone').addEventListener('dragleave', () => document.getElementById('dropzone').classList.remove('drag'));
+document.getElementById('dropzone').addEventListener('drop', e => {
+  e.preventDefault(); document.getElementById('dropzone').classList.remove('drag');
+  const f = e.dataTransfer.files[0];
+  if (f) { const i = document.getElementById('file-input'); const dt = new DataTransfer(); dt.items.add(f); i.files = dt.files; handleFile(i); }
+});
 
 // init
 updatePreview();
 </script>
 </body>
-  <footer style="border-top: 0.5px solid #e0e0e0; padding: 1.5rem 0 1rem; text-align: center;"> <p style="font-size: 15px; color: #888; margin: 0 0 4px;">「あったらいいのに」を、作ってる。</p> <p style="font-size: 12px; color: #aaa; margin: 0;">© 2026 野村晃一 All rights reserved.</p> </footer> 
+<footer style="border-top: 0.5px solid #e0e0e0; padding: 1.5rem 0 1rem; text-align: center;">
+  <p style="font-size: 15px; color: #888; margin: 0 0 4px;">「あったらいいのに」を、作ってる。</p>
+  <p style="font-size: 12px; color: #aaa; margin: 0;">© 2026 野村晃一 All rights reserved.</p>
+</footer>
 </html>
